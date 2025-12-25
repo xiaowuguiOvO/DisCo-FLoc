@@ -9,8 +9,8 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-from model.cross_modal import CrossModalLocModel
-from model.clear_dataset import CLEAR_Dataset
+from CLEAR_model.cross_modal import CrossModalLocModel
+from CLEAR_model.clear_dataset import CLEAR_Dataset
 from datetime import datetime
 
 def main(config):

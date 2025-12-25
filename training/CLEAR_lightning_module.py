@@ -6,7 +6,8 @@ from torchvision import transforms
 from torch.optim import AdamW
 from warmup_scheduler import GradualWarmupScheduler
 
-from model.flona import f3dif
+from RRP_model.depth_models import DepthPredModels
+
 class FlonaLightningModule(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
@@ -14,7 +15,7 @@ class FlonaLightningModule(pl.LightningModule):
         self.config = config
         self.image_log_freq = self.config['image_log_freq']
 
-        self.model = f3dif(config=self.config, encoder_type=self.config["encoder_type"], decoder_type=self.config["decoder_type"])
+        self.model = DepthPredModels(config=self.config, encoder_type=self.config["encoder_type"], decoder_type=self.config["decoder_type"])
 
     def forward(self, func_name, **kwargs):
         return self.model(func_name, **kwargs)
@@ -26,11 +27,11 @@ class FlonaLightningModule(pl.LightningModule):
             ray,
             floorplan_img,
             wh,
-            rmd_matrix
+            *_ # Ignore local_map and neg_local_map if present
         ) = batch
         
         # Get vision features
-        features = self.model("encode", obs_img=batch_obs_image, rmd_matrix=rmd_matrix)
+        features = self.model("encode", obs_img=batch_obs_image)
         output = self.model("decoder_train", depth_cond=features, gt_ray=ray)
         
         pred_d = output["pred"]
@@ -41,7 +42,7 @@ class FlonaLightningModule(pl.LightningModule):
             if (self.global_step + 1) % self.image_log_freq == 0:
                 self.model.eval()
                 with torch.no_grad():
-                    features = self.model("encode", obs_img=batch_obs_image, rmd_matrix=rmd_matrix)
+                    features = self.model("encode", obs_img=batch_obs_image)
                     pred_d = self.model("decoder_inference", depth_cond=features, num_samples=1)
                     
                     action_loss = F.mse_loss(pred_d, ray.squeeze(-1))
@@ -56,10 +57,10 @@ class FlonaLightningModule(pl.LightningModule):
                 ray,
                 floorplan_img,
                 wh,
-                rmd_matrix
+                *_
             ) = batch
 
-            features = self.model("encode", obs_img=batch_obs_image, rmd_matrix=rmd_matrix)
+            features = self.model("encode", obs_img=batch_obs_image)
             pred_d = self.model("decoder_inference", depth_cond=features, num_samples=1)
 
             val_loss = F.mse_loss(pred_d, ray)

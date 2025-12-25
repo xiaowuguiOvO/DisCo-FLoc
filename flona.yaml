@@ -1,0 +1,68 @@
+project_name: flona
+run_name: flona
+
+# encoder / decoder type
+
+encoder_type: dptv2 # [res50, res50_3D, res50_RSK, dptv2, RMD]
+decoder_type: unloc # ['f3mlp', diffusion, unloc]
+
+
+# =====training setup=====
+use_wandb: True # set to false if you don't want to log to wandb  1
+train: True
+batch_size: 4  #1
+epochs: 400
+gpu_ids: [0]     # 1
+num_workers: 6  #1
+lr: 1e-3
+optimizer: adamw
+max_norm: 1.
+scheduler: "cosine"
+warmup: False
+warmup_epochs: 10
+seed: 0
+# load_run: "flona/flona_20251120_123355"
+# load_checkpoint: 'epoch=31-val_action_loss=0.32.ckpt'
+
+# =====model params=====
+vision_encoder: flona_vint
+encoding_size: 128 # 1
+obs_encoder: efficientnet-b0
+cond_predict_scale: False
+mha_num_attention_heads: 4 #  1
+mha_num_attention_layers: 4  # 1
+mha_ff_dim_factor: 4
+down_dims: [64, 128, 256]
+num_diffusion_iters: 10
+normalize: True  #1
+context_size: 0 #3 # 5 1
+alpha: 0.001
+len_traj_pred: 32 #1
+d_min: 0.1
+d_max: 20.0
+d_hyp: -0.2
+D: 128
+
+# dataset specific parameters
+image_size: [256, 256]  #[96, 96] # width, height
+datasets:
+  data_folder: datasets_s3d/Structured3D
+  data_splits: datasets_s3d/Structured3D/split.yaml
+  rgb_img_size: [640, 480]
+  floorplan_img_size: [256, 256]
+  rmd_ray_num: 8
+  rmd_m1: 9
+  rmd_m2: 9
+# logging stuff
+print_log_freq: 500 # in iterations
+image_log_freq: 500 #0 # in iterations
+num_images_log: 4 #0
+pairwise_test_freq: 0 # in epochs
+eval_fraction: 1  #0.1
+wandb_log_freq: 1 # in iterations
+eval_freq: 1 # in epochs
+
+# checkpoints
+dptv2_ckpt_path: checkpoints/depth_anything_v2_vits.pth
+res50_3D_ckpt_path: checkpoints/resnet50_3DPrior.pth
+res50_RSK_ckpt_path: checkpoints/resnet50_RSK.pth

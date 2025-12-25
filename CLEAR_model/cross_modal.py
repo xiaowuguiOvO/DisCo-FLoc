@@ -6,9 +6,9 @@ from torch.optim import AdamW
 import numpy as np
 import cv2
 import wandb
-from model.RRP import UnlocFeatureExtractor
-from model.map_encoder import MapEncoder
-from model.viz_utils import visualize_cross_modal_batch
+from CLEAR_model.RRP import UnlocFeatureExtractor
+from CLEAR_model.map_encoder import MapEncoder
+from CLEAR_model.viz_utils import visualize_cross_modal_batch
 
 class CrossModalLocModel(pl.LightningModule):
     def __init__(self, config):
