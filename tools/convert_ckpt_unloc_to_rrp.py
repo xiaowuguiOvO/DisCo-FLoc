@@ -44,7 +44,24 @@ def convert_checkpoint(input_path, output_path):
         ckpt = new_state_dict
 
     print(f"Total keys renamed: {renamed_count}")
-    
+
+    # Update hyper_parameters if they exist
+    if "hyper_parameters" in ckpt:
+        print("Found 'hyper_parameters' in checkpoint. Checking for 'decoder_type'...")
+        hparams = ckpt["hyper_parameters"]
+        
+        # Check inside 'config' dict if it exists (common pattern)
+        if "config" in hparams and isinstance(hparams["config"], dict):
+            config = hparams["config"]
+            if config.get("decoder_type") == "unloc":
+                print("Updating config['decoder_type']: 'unloc' -> 'rrp'")
+                config["decoder_type"] = "rrp"
+        
+        # Check top-level decoder_type
+        if hparams.get("decoder_type") == "unloc":
+            print("Updating hparams['decoder_type']: 'unloc' -> 'rrp'")
+            hparams["decoder_type"] = "rrp"
+            
     # Save the new checkpoint
     print(f"Saving new checkpoint to: {output_path}")
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)

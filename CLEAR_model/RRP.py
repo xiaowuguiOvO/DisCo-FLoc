@@ -18,7 +18,7 @@ class RRP(nn.Module):
     def __init__(self, encoder="vits", fH=30, fW=40, embed_dim=128, **kwargs):
         super().__init__()
         # 特征提取
-        self.feature_extractor = UnlocFeatureExtractor(
+        self.feature_extractor = RRPFeatureExtractor(
             encoder=encoder, 
             fH=fH, 
             fW=fW, 
@@ -61,7 +61,7 @@ class DepthUncertaintyHead(nn.Module):
         
         return d_hat, b_hat
 
-class UnlocFeatureExtractor(nn.Module):
+class RRPFeatureExtractor(nn.Module):
     def __init__(self, encoder="vits", fH=30, fW=40, embed_dim=128, pos_embed_dim=32, num_heads=8, target_size=(23, 40), checkpoint_path=None):
         super().__init__()
         

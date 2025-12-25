@@ -9,7 +9,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-from CLEAR_model.cross_modal import CrossModalLocModel
+from CLEAR_model.clear_modal import ClearLocModel
 from CLEAR_model.clear_dataset import CLEAR_Dataset
 from datetime import datetime
 
@@ -64,7 +64,7 @@ def main(config):
     )
     
     # Model
-    model = CrossModalLocModel(config)
+    model = ClearLocModel(config)
     
     # Project folder setup
     project_folder = os.path.join("logs", "clear_runs", config['run_name'])

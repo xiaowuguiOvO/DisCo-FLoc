@@ -13,7 +13,7 @@ from utils.data_utils import *
 from utils.localization_utils import *
 
 from training.RRP_lightning_module import RRPLightningModule
-from training.CLEAR_lightning_module import CLEARLightningModule
+from CLEAR_model.clear_modal import ClearLocModel
 
 # Global Args
 parser = argparse.ArgumentParser(description="Eval with Clear Model")
@@ -26,8 +26,8 @@ parser.add_argument("--ckpt_path", type=str, default="./eval/logs")
 parser.add_argument("--visualize", action="store_true")
 
 # New Args for CrossModal
-parser.add_argument("--rrp_model_ckpt", type=str, default='checkpoints\RRP_s3d_best_fix.ckpt', help="Path to RRP checkpoint")
-parser.add_argument("--clear_model_ckpt", type=str, default='checkpoints\CLEAR_s3d_best.ckpt', help="Path to CLEAR checkpoint")
+parser.add_argument("--rrp_model_ckpt", type=str, default='checkpoints\RRP_s3d_best.ckpt', help="Path to RRP checkpoint")
+parser.add_argument("--clear_model_ckpt", type=str, default='logs\CLEAR_s3d_best', help="Path to CLEAR checkpoint")
 parser.add_argument("--top_k", type=int, default=100, help="Number of candidates to re-rank")
 parser.add_argument("--alpha", type=float, default=0.3, help="Weight of semantic score")
 parser.add_argument("--clear_only", action="store_true", help="If True, ignore geometric probability and only use cross-modal score")
@@ -91,8 +91,8 @@ def evaluate():
     rrp_model = rrp_plt.model.to(device)
     rrp_model.eval()
     # --- 2. Load CLEAR Model ---
-    cl_plt = CLEARLightningModule.load_from_checkpoint(args.clear_model_ckpt, config=config, map_location=device)  
-    cl_model = cl_plt.model.to(device)
+    cl_model = ClearLocModel.load_from_checkpoint(args.clear_model_ckpt, config=config, map_location=device)  
+    cl_model.to(device)
     cl_model.eval()
 
     # --- 3. Setup Dataset ---

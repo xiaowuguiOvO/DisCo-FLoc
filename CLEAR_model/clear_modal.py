@@ -6,11 +6,11 @@ from torch.optim import AdamW
 import numpy as np
 import cv2
 import wandb
-from CLEAR_model.RRP import UnlocFeatureExtractor
+from CLEAR_model.RRP import RRPFeatureExtractor
 from CLEAR_model.map_encoder import MapEncoder
 from CLEAR_model.viz_utils import visualize_cross_modal_batch
 
-class CrossModalLocModel(pl.LightningModule):
+class ClearLocModel(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
         self.save_hyperparameters(config)
@@ -18,9 +18,8 @@ class CrossModalLocModel(pl.LightningModule):
         
         self.use_cls_token = config.get('use_cls_token', True)
         
-        # 1. Image Encoder (Frozen DINOv2 / Unloc)
-        # 使用配置中的 checkpoint 加载权重
-        self.image_encoder = UnlocFeatureExtractor(
+        # 1. Image Encoder (Frozen DINOv2 )
+        self.image_encoder = RRPFeatureExtractor(
             encoder="vits", 
             checkpoint_path=config.get("dptv2_ckpt_path", "checkpoints/depth_anything_v2_vits.pth")
         )
