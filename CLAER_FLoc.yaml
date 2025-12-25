@@ -1,0 +1,26 @@
+# General Training Configuration
+run_name: "cross_modal_pretrain"
+use_wandb: true
+gpu_ids: [0]
+epochs: 20
+batch_size: 64
+num_workers: 4
+train_viz_step: 1000  # Visualization frequency (steps)
+
+# Model Configuration
+dptv2_ckpt_path: "checkpoints/depth_anything_v2_vits.pth"
+
+use_cls_token: true
+# Dataset Configuration
+datasets:
+  data_folder: "datasets_s3d/Structured3D"
+  data_splits: "datasets_s3d/Structured3D/split.yaml"
+  floorplan_img_size: [256, 256]
+  local_map_crop_size_meters: 5.0  # Crop size for local map augmentation
+  # Pose Augmentation (Training Only)
+  pose_aug:
+    enable: true
+    trans_range: 25   # +/- pixels (approx 0.5m)  defalut 25
+    rot_range: 0.26   # +/- radians (approx 15 deg) defalut 0.26
+
+  
