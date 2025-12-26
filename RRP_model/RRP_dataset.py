@@ -5,7 +5,6 @@ import yaml
 from pathlib import Path
 import numpy as np
 import tqdm
-import lmdb
 from PIL import Image
 import torch
 from torch.utils.data import Dataset
