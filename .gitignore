@@ -4,3 +4,4 @@ wandb/
 datasets_s3d
 **/__pycache__/
 *.py[cod]
+datasets_s3d_metadata/

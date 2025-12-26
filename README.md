@@ -23,12 +23,39 @@ This repository contains the implementation for **CLEAR-FLoc**.
 
 ## Prerequisites
 
-Before running the training scripts, ensure you have the following data and checkpoints in place:
+Before running the training scripts, you need to prepare the dataset and checkpoints.
 
-### 1. Dataset
-The project expects the **Structured3D(Full)** dataset.
-*   **Location**: `datasets_s3d/Structured3D`
-*   **Split Config**: `datasets_s3d/Structured3D/split.yaml`
+### 1. Dataset Preparation
+
+We provide a **Metadata Pack** containing processed labels, poses, and DESDF features. You need to combine this with the raw images from the official Structured3D dataset.
+
+**Step 1: Download Metadata**
+*   Download our processed metadata (`datasets_s3d_metadata_only.zip`) from [**[HERE]**](https://drive.google.com/file/d/1Uyl_VoYHTyMi3he5jCuKLNOvgvQMUfYE/view?usp=sharing).
+*   Unzip it to the project root. You will get a folder structure like `datasets_s3d/Structured3D/...`.
+
+**Step 2: Download Raw Data**
+*   Go to the [**Structured3D Official Website**](https://structured3d-dataset.org/) or [**GitHub**](https://github.com/bertjiazheng/Structured3D) to request access and download the **Full** dataset.
+*   You specifically need the **RGB images** and **Perspective maps** (if not included in our metadata).
+
+**Step 3: Merge Data**
+*   Place the downloaded RGB images into the corresponding `imgs/` folders in our directory structure.
+*   Ensure `map.png` (floorplan) exists in each scene folder (copy from official data if needed).
+
+**Final Structure:**
+```text
+datasets_s3d/
+└── Structured3D/
+    ├── split.yaml
+    ├── desdf/
+    ├── scene_00000/
+    │   ├── poses_map.txt   <-- Included in Metadata
+    │   ├── depth40.txt     <-- Included in Metadata
+    │   ├── map.png         <-- Included in Metadata or Copy from Official
+    │   └── imgs/
+    │       ├── 000.png     <-- PLACE OFFICIAL IMAGES HERE
+    │       └── ...
+    └── ...
+```
 
 ### 2. Pretrained Checkpoints
 You need the **Depth Anything V2** checkpoint (ViT-S version).
