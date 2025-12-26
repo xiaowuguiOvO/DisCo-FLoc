@@ -1,5 +1,9 @@
 # CLEAR-FLoc
 
+<div align="center">
+  <img src="assets/framework.png" width="100%">
+</div>
+
 This repository contains the implementation for **CLEAR-FLoc**.
 
 ## Environment Setup
