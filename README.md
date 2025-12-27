@@ -10,7 +10,7 @@
   <img src="assets/framework.png" width="100%">
 </div>
 
-This repository contains the implementation for **CLEAR-FLoc**.
+This repository contains the implementation for paper **CLEAR-FLoc: Using Dual-Level Visual-Geometric Contrasts to Disambiguate Depth-Aware Visual Floorplan Localization**.
 
 ## Environment Setup
 
