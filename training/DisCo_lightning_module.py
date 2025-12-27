@@ -7,10 +7,10 @@ import numpy as np
 import cv2
 import wandb
 from RRP_model.RRP import RRPFeatureExtractor
-from CLEAR_model.map_encoder import MapEncoder
-from CLEAR_model.viz_utils import visualize_cross_modal_batch
+from DisCo_model.map_encoder import MapEncoder
+from DisCo_model.viz_utils import visualize_cross_modal_batch
 
-class ClearLocModel(pl.LightningModule):
+class DisCoLocModel(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
         self.save_hyperparameters(config)

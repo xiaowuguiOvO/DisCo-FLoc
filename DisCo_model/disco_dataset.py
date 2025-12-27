@@ -19,7 +19,7 @@ from .data_utils import (
     to_local_coords,
 )
 
-class CLEAR_Dataset(Dataset):
+class DisCo_Dataset(Dataset):
     def __init__(self, data_folder: str, data_splits_path: str, split: str, floorplan_img_size: Tuple[int, int], pose_aug_params: dict = None, dataset_cfg: dict = None):
         self.data_folder = data_folder
         self.data_splits_path = data_splits_path
@@ -213,7 +213,7 @@ if __name__ == "__main__":
     SPLIT = 'train'
     RGB_SIZE = (256, 256)
     
-    dataset = CLEAR_Dataset(
+    dataset = DisCo_Dataset(
             data_folder=DATA_FOLDER,
             data_splits_path=DATA_SPLITS_PATH,
             split=SPLIT,

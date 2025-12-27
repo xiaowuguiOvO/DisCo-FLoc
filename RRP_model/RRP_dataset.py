@@ -11,7 +11,7 @@ from torch.utils.data import Dataset
 import cv2
 from torchvision import transforms
 
-from CLEAR_model.data_utils import (
+from DisCo_model.data_utils import (
     img_path_to_data,
     img_path_to_data_and_point_transfer,
     calculate_sin_cos,

@@ -8,10 +8,10 @@ from typing import Optional
 from torchvision.transforms import Compose
 import cv2
 from collections import OrderedDict
-from CLEAR_model.depth_anything_v2.dinov2 import DINOv2
-from CLEAR_model.depth_anything_v2.util.blocks import FeatureFusionBlock, _make_scratch
-from CLEAR_model.depth_anything_v2.util.transform import Resize, NormalizeImage, PrepareForNet
-from CLEAR_model.network_utils import *
+from DisCo_model.depth_anything_v2.dinov2 import DINOv2
+from DisCo_model.depth_anything_v2.util.blocks import FeatureFusionBlock, _make_scratch
+from DisCo_model.depth_anything_v2.util.transform import Resize, NormalizeImage, PrepareForNet
+from DisCo_model.network_utils import *
 import math
 
 class RRPFeatureExtractor(nn.Module):

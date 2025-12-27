@@ -1,6 +1,6 @@
 # General Training Configuration
-project_name: "clear_model"
-run_name: "clear_model"
+project_name: "disco_model"
+run_name: "disco_model"
 use_wandb: true
 gpu_ids: [0]
 epochs: 20

@@ -69,12 +69,12 @@ You need the **Depth Anything V2** checkpoint (ViT-S version).
 *   **Download**: Download the `depth_anything_v2_vits.pth` [here](https://huggingface.co/depth-anything/Depth-Anything-V2-Small/resolve/main/depth_anything_v2_vits.pth).
 
 ## Training
-### Train CLEAR Model
+### Train DisCo Model
 
-To train the CLEAR model, run:
+To train the DisCo model, run:
 
 ```bash
-python training/train_clear_model.py --config CLEAR_FLoc.yaml
+python training/train_disco_model.py --config DisCo_FLoc.yaml
 ```
 
 ### Train RRP Model
@@ -88,5 +88,5 @@ python training/train_rrp_model.py --config RRP.yaml
 
 ## Evaluation
 ```bash
-python eval/eval_clear_model_s3d.py
+python eval/eval_disco_model_s3d.py
 ```

@@ -9,8 +9,8 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-from training.CLEAR_lightning_module import ClearLocModel
-from CLEAR_model.clear_dataset import CLEAR_Dataset
+from training.DisCo_lightning_module import DisCoLocModel
+from DisCo_model.disco_dataset import DisCo_Dataset
 from datetime import datetime
 
 def main(config):
@@ -25,7 +25,7 @@ def main(config):
     # Default pose aug if not in config
     pose_aug_cfg = dataset_cfg.get('pose_aug', {'enable': True, 'trans_range': 25, 'rot_range': 0.26})
     
-    train_dataset = CLEAR_Dataset(
+    train_dataset = DisCo_Dataset(
         data_folder=dataset_cfg['data_folder'],
         data_splits_path=dataset_cfg['data_splits'],
         split="train",
@@ -35,7 +35,7 @@ def main(config):
     )
     
     val_split = "test"
-    val_dataset = CLEAR_Dataset(
+    val_dataset = DisCo_Dataset(
         data_folder=dataset_cfg['data_folder'],
         data_splits_path=dataset_cfg['data_splits'],
         split=val_split, 
@@ -64,17 +64,17 @@ def main(config):
     )
     
     # Model
-    model = ClearLocModel(config)
+    model = DisCoLocModel(config)
     
     # Project folder setup
-    project_folder = os.path.join("logs", "clear_runs", config['run_name'])
+    project_folder = os.path.join("logs", "disco_runs", config['run_name'])
     os.makedirs(project_folder, exist_ok=True)
 
     # Logger
     logger = True
     if config.get("use_wandb", False):
         try:
-            logger = WandbLogger(project="clear_model", name=config['run_name'])
+            logger = WandbLogger(project="disco_model", name=config['run_name'])
         except:
             pass
     
@@ -108,7 +108,7 @@ def main(config):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="CLEAR_FLoc.yaml", type=str)
+    parser.add_argument("--config", default="DisCo_FLoc.yaml", type=str)
     # Allow overriding batch size from CLI
     parser.add_argument("--batch_size", default=64, type=int)
     parser.add_argument("--run_name", default=None, type=str, help="Experiment name. If not provided, adds timestamp to default.")
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         config['run_name'] = args.run_name
     else:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        config['run_name'] = f"clear_model_{timestamp}"
+        config['run_name'] = f"disco_model_{timestamp}"
 
     config['batch_size'] = args.batch_size
     config['epochs'] = 20

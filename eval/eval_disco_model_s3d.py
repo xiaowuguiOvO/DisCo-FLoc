@@ -13,11 +13,11 @@ from utils.data_utils import *
 from utils.localization_utils import *
 
 from training.RRP_lightning_module import RRPLightningModule
-from training.CLEAR_lightning_module import ClearLocModel
+from training.DisCo_lightning_module import DisCoLocModel
 
 # Global Args
-parser = argparse.ArgumentParser(description="Eval with Clear Model")
-parser.add_argument("--config", "-c", default="CLEAR_FLoc.yaml", type=str)
+parser = argparse.ArgumentParser(description="Eval with DisCo Model")
+parser.add_argument("--config", "-c", default="DisCo_FLoc.yaml", type=str)
 parser.add_argument("--net_type", type=str, default="rrp")
 parser.add_argument("--dataset", type=str, default="Structured3D")
 parser.add_argument("--dataset_path", type=str, default="./datasets_s3d/Structured3D/")
@@ -27,10 +27,10 @@ parser.add_argument("--visualize", action="store_true")
 
 # New Args for CrossModal
 parser.add_argument("--rrp_model_ckpt", type=str, default='logs\\rrp_runs\\rrp_model_20251226_013633\\checkpoints\\epoch=37-val_action_loss=0.74.ckpt', help="Path to RRP checkpoint")
-parser.add_argument("--clear_model_ckpt", type=str, default='logs\clear_runs\clear_model_20251225_195749\checkpoints\epoch=15-val_acc=0.75_20251225_195753.ckpt', help="Path to CLEAR checkpoint")
+parser.add_argument("--disco_model_ckpt", type=str, default='logs\disco_runs\disco_model_20251225_195749\checkpoints\epoch=15-val_acc=0.75_20251225_195753.ckpt', help="Path to DisCo checkpoint")
 parser.add_argument("--top_k", type=int, default=100, help="Number of candidates to re-rank")
 parser.add_argument("--alpha", type=float, default=0.5, help="Weight of semantic score")
-parser.add_argument("--clear_only", action="store_true", help="If True, ignore geometric probability and only use cross-modal score")
+parser.add_argument("--disco_only", action="store_true", help="If True, ignore geometric probability and only use cross-modal score")
 parser.add_argument("--all_imgs", default=True, help="If True, evaluate all images as reference frames in a sliding window manner (dense evaluation). Default to False (sparse evaluation).")
 
 # Single Image Debugging
@@ -90,8 +90,8 @@ def evaluate():
     rrp_plt = RRPLightningModule.load_from_checkpoint(args.rrp_model_ckpt , map_location=device)
     rrp_model = rrp_plt.model.to(device)
     rrp_model.eval()
-    # --- 2. Load CLEAR Model ---
-    cl_model = ClearLocModel.load_from_checkpoint(args.clear_model_ckpt, config=config, map_location=device)  
+    # --- 2. Load DisCo Model ---
+    cl_model = DisCoLocModel.load_from_checkpoint(args.disco_model_ckpt, config=config, map_location=device)  
     cl_model.to(device)
     cl_model.eval()
 
@@ -296,7 +296,7 @@ def evaluate():
                 
                 semantic_weight = torch.exp(sim_scores * args.alpha)
                 
-                if args.clear_only:
+                if args.disco_only:
                     final_scores = semantic_weight
                 else:
                     final_scores = geo_probs * semantic_weight
@@ -352,7 +352,7 @@ def evaluate():
             # 1. RRP Map (Dense)
             map_rrp = prob_dist.cpu().numpy()
             
-            # 2. CLEAR Map (Sparse)
+            # 2. DisCo Map (Sparse)
             map_cl = np.zeros((H, W), dtype=np.float32)
             cl_vals = semantic_weight.cpu().numpy() if len(semantic_weight) > 0 else []
             
@@ -428,7 +428,7 @@ def evaluate():
             rrp_vmax = np.max(map_rrp) if np.max(map_rrp) > 0 else 1e-6
             final_vmax = np.max(map_final) if np.max(map_final) > 0 else 1e-6
 
-            # 1. CLEAR Score Map (Semantic Weights)
+            # 1. DisCo Score Map (Semantic Weights)
             cl_error_str = ""
             if cl_pred_pt is not None:
                 cl_err = np.linalg.norm(cl_pred_pt - gt_pose_desdf[:2]) * 0.1
@@ -440,7 +440,7 @@ def evaluate():
             viz_map(axs[1], map_rrp, f"RRP Prob (Err: {geo_error:.2f}m)", pred_pt=geo_pred, pred_orn=rrp_pred_orn)
             
             # 3. Combined
-            viz_map(axs[2], map_final, f"CLEAR Combined Prob (Err: {acc:.2f}m)", pred_pt=pose_pred[:2], pred_orn=pose_pred[2], vmin=None, vmax=final_vmax)
+            viz_map(axs[2], map_final, f"DisCo Combined Prob (Err: {acc:.2f}m)", pred_pt=pose_pred[:2], pred_orn=pose_pred[2], vmin=None, vmax=final_vmax)
             
             plt.suptitle(f"{scene} - Frame {idx_within_scene} ({save_folder.upper()})")
             plt.tight_layout()
@@ -455,7 +455,7 @@ def evaluate():
     total_samples = len(acc_record)
     
     print("\n" + "="*30)
-    print(f"Results with CLEAR (k={args.top_k}, alpha={args.alpha})")
+    print(f"Results with DisCo (k={args.top_k}, alpha={args.alpha})")
     print(f"1m recall = {np.sum(acc_record < 1) / total_samples:.4f}")
     print(f"0.5m recall = {np.sum(acc_record < 0.5) / total_samples:.4f}")
     print(f"0.1m recall = {np.sum(acc_record < 0.1) / total_samples:.4f}")
@@ -478,7 +478,7 @@ def evaluate():
     # 1. Current Result
     current_result = {
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "ckpt": args.clear_model_ckpt,
+        "ckpt": args.disco_model_ckpt,
         "k": args.top_k,
         "alpha": args.alpha,
         "1m_recall": np.sum(acc_record < 1) / total_samples,
