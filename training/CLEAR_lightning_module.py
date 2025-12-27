@@ -126,24 +126,7 @@ class ClearLocModel(pl.LightningModule):
         return scores
 
     def training_step(self, batch, batch_idx):
-        if isinstance(batch, (list, tuple)):
-            obs_img = batch[0]
-            pose = batch[1]
-            floorplan_img = batch[3]
-            wh = batch[4]
-            local_map = batch[5]
-            neg_local_map = batch[6]
-            neg_pose = batch[7]
-        elif isinstance(batch, dict):
-            obs_img = batch['rgb']
-            pose = batch['pose']
-            floorplan_img = batch['floorplan_image']
-            wh = batch['wh']
-            local_map = batch['local_map']
-            neg_local_map = batch['neg_local_map']
-            neg_pose = batch['neg_pose']
-        else:
-            raise ValueError("Unknown batch type")
+        obs_img, pose, _, floorplan_img, wh, local_map, neg_local_map, neg_pose = batch
         
         batch_size = obs_img.shape[0]
         
@@ -246,20 +229,7 @@ class ClearLocModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        if isinstance(batch, (list, tuple)):
-            obs_img = batch[0]
-            pose = batch[1]
-            floorplan_img = batch[3]
-            wh = batch[4]
-            local_map = batch[5]
-        elif isinstance(batch, dict):
-            obs_img = batch['rgb']
-            pose = batch['pose']
-            floorplan_img = batch['floorplan_image']
-            wh = batch['wh']
-            local_map = batch['local_map']
-        else:
-            raise ValueError("Unknown batch type")
+        obs_img, pose, _, floorplan_img, wh, local_map, neg_local_map, neg_pose = batch
         
         batch_size = obs_img.shape[0]
         
