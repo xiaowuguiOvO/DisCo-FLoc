@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-    <strong>Shiyong Meng, Tao Zou, Bolei Chen*, Jianxin Wang</strong>
+    <strong>Shiyong Meng, Tao Zou, Bolei Chen*, Chaoxu Mu, Jianxin Wang</strong>
     <br>
 </p>
 
