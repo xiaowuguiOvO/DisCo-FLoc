@@ -1,16 +1,5 @@
 # DisCo-FLoc: Using Dual-Level Visual-Geometric Contrasts to Disambiguate Depth-Aware Visual Floorplan Localization
 
-<p align="center">
-    <a href="https://arxiv.org/abs/2601.01822"><img src="https://img.shields.io/badge/arXiv-2601.01822-b31b1b.svg"></a>
-    <a href="https://xiaowuguiovo.github.io/DisCo-FLoc_Project_Website/"><img src="https://img.shields.io/badge/Project-Website-blue.svg"></a>
-    <a href="https://arxiv.org/pdf/2601.01822.pdf"><img src="https://img.shields.io/badge/Paper-PDF-green.svg"></a>
-</p>
-
-<p align="center">
-    <strong>Ping Zhong, Shiyong Meng, Tao Zou, Bolei Chen*, Chaoxu Mu, Jianxin Wang</strong>
-    <br>
-</p>
-
 <div align="center">
   <img src="assets/framework.png" width="100%">
 </div>
