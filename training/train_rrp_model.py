@@ -81,7 +81,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config",
         "-c",
-        default="RRP.yaml",
+        default="configs/paper/rrp_s3d.yaml",
         type=str,
         help="Path to the config file",
     )

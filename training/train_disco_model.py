@@ -121,11 +121,10 @@ def main(config):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="DisCo_FLoc.yaml", type=str)
-    # Allow overriding batch size from CLI
-    parser.add_argument("--batch_size", default=64, type=int)
+    parser.add_argument("--config", default="configs/paper/disco_s3d.yaml", type=str)
+    parser.add_argument("--batch_size", default=None, type=int)
     parser.add_argument("--epochs", default=None, type=int)
-    parser.add_argument("--run_name", default=None, type=str, help="Experiment name. If not provided, adds timestamp to default.")
+    parser.add_argument("--run_name", default=None, type=str, help="Experiment name. Defaults to run_name in the config.")
     args = parser.parse_args()
     
     with open(args.config, 'r') as f:
@@ -134,11 +133,12 @@ if __name__ == "__main__":
     # Override settings for this specific task
     if args.run_name:
         config['run_name'] = args.run_name
-    else:
+    elif "run_name" not in config:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         config['run_name'] = f"disco_model_{timestamp}"
 
-    config['batch_size'] = args.batch_size
+    if args.batch_size is not None:
+        config['batch_size'] = args.batch_size
     if args.epochs is not None:
         config['epochs'] = args.epochs
     

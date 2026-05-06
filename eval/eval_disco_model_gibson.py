@@ -192,7 +192,7 @@ class GibsonGridSeqDataset(GridSeqDataset):
 
 # Global Args
 parser = argparse.ArgumentParser(description="Eval with DisCo Model on Gibson")
-parser.add_argument("--config", "-c", default="DisCo_Gibson.yaml", type=str)
+parser.add_argument("--config", "-c", default="configs/paper/disco_gibson.yaml", type=str)
 parser.add_argument("--net_type", type=str, default="rrp")
 parser.add_argument("--dataset", type=str, default="gibson_f")
 parser.add_argument("--dataset_path", type=str, default="./datasets_gibson/gibson_f")
@@ -201,23 +201,39 @@ parser.add_argument("--ckpt_path", type=str, default="./eval/logs")
 parser.add_argument("--visualize", action="store_true")
 
 # New Args for CrossModal
-parser.add_argument("--rrp_model_ckpt", type=str, default="checkpoints/RRP_gibson_best.ckpt", help="Path to RRP checkpoint")
-parser.add_argument("--disco_model_ckpt", type=str, default="checkpoints/DisCo_gibson_best.ckpt", help="Path to DisCo checkpoint. Use an empty string to run RRP only.")
-parser.add_argument("--top_k", type=int, default=100, help="Number of candidates to re-rank")
+parser.add_argument("--rrp_model_ckpt", type=str, default="checkpoints/RRP_gibson_f_best.ckpt", help="Path to RRP checkpoint")
+parser.add_argument("--disco_model_ckpt", type=str, default="checkpoints/DisCo_gibson_f_best.ckpt", help="Path to DisCo checkpoint. Use an empty string to run RRP only.")
 parser.add_argument("--alpha", type=float, default=0.5, help="Weight of semantic score")
-parser.add_argument("--disco_only", action="store_true", help="If True, ignore geometric probability and only use cross-modal score")
 parser.add_argument("--all_imgs", action="store_true", help="If True, evaluate all images. Gibson script default was often sparsely sampled.")
 parser.add_argument(
-    "--cluster_source_top_k",
+    "--mode_source_top_k",
     type=int,
     default=1000,
-    help="If > 0, take the top-N RRP candidates, apply radius-based spatial clustering, and only re-rank the cluster representatives.",
+    help="Number of RRP candidates used to extract SE(2) representative mode hypotheses.",
 )
 parser.add_argument(
-    "--cluster_radius_m",
+    "--se2_sigma_t_m",
     type=float,
     default=0.6,
-    help="Radius in meters for spatial clustering / NMS over RRP candidates.",
+    help="Translation scale in meters for SE(2)-aware mode consolidation.",
+)
+parser.add_argument(
+    "--se2_sigma_theta_deg",
+    type=float,
+    default=30.0,
+    help="Angular scale in degrees for SE(2)-aware mode consolidation.",
+)
+parser.add_argument(
+    "--se2_angle_weight",
+    type=float,
+    default=1.0,
+    help="Angular term weight for SE(2)-aware mode consolidation.",
+)
+parser.add_argument(
+    "--se2_mode_radius",
+    type=float,
+    default=1.0,
+    help="Threshold on normalized SE(2) distance for assigning candidates to a mode basin.",
 )
 parser.add_argument(
     "--gpu_localize",
@@ -286,41 +302,64 @@ def crop_local_map(map_img, x, y, theta, crop_size_meters, res=0.01, output_size
     return local_map
 
 
-def cluster_topk_candidates(topk_vals, topk_indices, width, radius_m, meters_per_cell):
-    if topk_indices.numel() == 0 or radius_m <= 0:
+def wrap_angle_rad(angle):
+    return torch.remainder(angle + torch.pi, 2 * torch.pi) - torch.pi
+
+
+def consolidate_se2_modes(
+    topk_vals,
+    topk_indices,
+    orientations,
+    width,
+    meters_per_cell,
+    sigma_t_m,
+    sigma_theta_deg,
+    angle_weight,
+    mode_radius,
+):
+    if topk_indices.numel() == 0:
+        keep_positions = torch.empty(0, dtype=torch.long)
+        basin_sizes = torch.empty(0, dtype=torch.long)
+        return topk_vals, topk_indices, keep_positions, basin_sizes
+
+    if mode_radius <= 0 or sigma_t_m <= 0 or sigma_theta_deg <= 0:
         keep_positions = torch.arange(topk_indices.shape[0], dtype=torch.long)
-        cluster_sizes = torch.ones(topk_indices.shape[0], dtype=torch.long)
-        return topk_vals, topk_indices, keep_positions, cluster_sizes
+        basin_sizes = torch.ones(topk_indices.shape[0], dtype=torch.long)
+        return topk_vals, topk_indices, keep_positions, basin_sizes
 
-    radius_cells = radius_m / meters_per_cell
-    radius_sq = radius_cells * radius_cells
-
+    sigma_theta = np.deg2rad(sigma_theta_deg)
     topk_y = (topk_indices // width).to(torch.float32)
     topk_x = (topk_indices % width).to(torch.float32)
+    topk_theta_idx = orientations[topk_y.long(), topk_x.long()].to(torch.float32)
+    topk_theta = topk_theta_idx / 36.0 * 2.0 * torch.pi
 
-    suppressed = torch.zeros(topk_indices.shape[0], dtype=torch.bool)
+    assigned = torch.zeros(topk_indices.shape[0], dtype=torch.bool)
     keep_positions = []
-    cluster_sizes = []
+    basin_sizes = []
 
     for idx in range(topk_indices.shape[0]):
-        if suppressed[idx]:
+        if assigned[idx]:
             continue
 
-        dx = topk_x - topk_x[idx]
-        dy = topk_y - topk_y[idx]
-        cluster_mask = (~suppressed) & ((dx * dx + dy * dy) <= radius_sq)
+        dx_m = (topk_x - topk_x[idx]) * meters_per_cell
+        dy_m = (topk_y - topk_y[idx]) * meters_per_cell
+        dtheta = wrap_angle_rad(topk_theta - topk_theta[idx])
+        spatial_term = (dx_m * dx_m + dy_m * dy_m) / (sigma_t_m * sigma_t_m)
+        angular_term = angle_weight * (dtheta * dtheta) / (sigma_theta * sigma_theta)
+        se2_dist = torch.sqrt(spatial_term + angular_term)
+        basin_mask = (~assigned) & (se2_dist <= mode_radius)
 
         keep_positions.append(idx)
-        cluster_sizes.append(int(cluster_mask.sum().item()))
-        suppressed |= cluster_mask
+        basin_sizes.append(int(basin_mask.sum().item()))
+        assigned |= basin_mask
 
     keep_positions = torch.tensor(keep_positions, dtype=torch.long)
-    cluster_sizes = torch.tensor(cluster_sizes, dtype=torch.long)
+    basin_sizes = torch.tensor(basin_sizes, dtype=torch.long)
     return (
         topk_vals[keep_positions],
         topk_indices[keep_positions],
         keep_positions,
-        cluster_sizes,
+        basin_sizes,
     )
 
 def evaluate():
@@ -422,11 +461,10 @@ def evaluate():
     # Stats 
     improved_count = 0
     worsened_count = 0
-    use_clustered_rerank = (
-        cl_model is not None and args.cluster_source_top_k > 0 and args.cluster_radius_m > 0
-    )
-    clustered_pool_sizes = []
-    clustered_rep_sizes = []
+    use_mode_rerank = cl_model is not None
+    mode_pool_sizes = []
+    mode_rep_sizes = []
+    mode_basin_sizes = []
 
     # Create visualization directories
     if args.visualize:
@@ -438,10 +476,11 @@ def evaluate():
              os.makedirs(os.path.join(viz_dir, "debug"), exist_ok=True)
         print(f"Saving visualizations to {viz_dir}")
 
-    if use_clustered_rerank:
+    if use_mode_rerank:
         print(
-            "Starting Evaluation with clustered rerank "
-            f"(source_top_k={args.cluster_source_top_k}, radius={args.cluster_radius_m:.2f}m)..."
+            "Starting Evaluation with SE(2)-Aware Mode Consolidation "
+            f"(source_top_k={args.mode_source_top_k}, sigma_t={args.se2_sigma_t_m:.2f}m, "
+            f"sigma_theta={args.se2_sigma_theta_deg:.1f}deg, rho={args.se2_mode_radius:.2f})..."
         )
     else:
         print("Starting Evaluation...")
@@ -555,25 +594,27 @@ def evaluate():
             
             # Flatten prob_dist to find Top-K candidates
             flat_probs = prob_dist.flatten()
-            initial_candidate_k = (
-                args.cluster_source_top_k if use_clustered_rerank else args.top_k
-            )
             topk_vals, topk_indices = torch.topk(
-                flat_probs, k=min(initial_candidate_k, flat_probs.numel())
+                flat_probs, k=min(args.mode_source_top_k, flat_probs.numel())
             )
             
             # Convert indices back to (y, x) in desdf frame
             H_d, W_d = prob_dist.shape
-            if use_clustered_rerank:
-                clustered_pool_sizes.append(len(topk_indices))
-                topk_vals, topk_indices, _, _ = cluster_topk_candidates(
-                    topk_vals,
-                    topk_indices,
-                    width=W_d,
-                    radius_m=args.cluster_radius_m,
-                    meters_per_cell=meters_per_desdf_cell,
-                )
-                clustered_rep_sizes.append(len(topk_indices))
+            mode_pool_sizes.append(len(topk_indices))
+            topk_vals, topk_indices, _, basin_sizes = consolidate_se2_modes(
+                topk_vals,
+                topk_indices,
+                orientations,
+                width=W_d,
+                meters_per_cell=meters_per_desdf_cell,
+                sigma_t_m=args.se2_sigma_t_m,
+                sigma_theta_deg=args.se2_sigma_theta_deg,
+                angle_weight=args.se2_angle_weight,
+                mode_radius=args.se2_mode_radius,
+            )
+            mode_rep_sizes.append(len(topk_indices))
+            if len(basin_sizes) > 0:
+                mode_basin_sizes.append(float(basin_sizes.float().mean().item()))
 
             topk_y = topk_indices // W_d
             topk_x = topk_indices % W_d
@@ -615,10 +656,7 @@ def evaluate():
                     geo_probs = topk_vals.to(device)
                     semantic_weight = torch.exp(sim_scores * args.alpha)
                     
-                    if args.disco_only:
-                        final_scores = semantic_weight
-                    else:
-                        final_scores = geo_probs * semantic_weight
+                    final_scores = geo_probs * semantic_weight
                     
                     # Find best in Top-K
                     best_idx_in_k = torch.argmax(final_scores).item()
@@ -651,8 +689,8 @@ def evaluate():
         if len(acc_record) > 0:
             current_1m_recall = np.sum(np.array(acc_record) < 1) / len(acc_record)
             postfix = {"1m_recall": f"{current_1m_recall:.4f}"}
-            if use_clustered_rerank and clustered_rep_sizes:
-                postfix["avg_rep_k"] = f"{(sum(clustered_rep_sizes) / len(clustered_rep_sizes)):.1f}"
+            if mode_rep_sizes:
+                postfix["avg_rep_k"] = f"{(sum(mode_rep_sizes) / len(mode_rep_sizes)):.1f}"
             eval_pbar.set_postfix(postfix)
         
         # Compare (Critical changes crossing 1m threshold)
@@ -752,20 +790,19 @@ def evaluate():
     total_samples = len(acc_record)
     
     print("\n" + "="*30)
-    if use_clustered_rerank:
-        avg_pool_k = np.mean(clustered_pool_sizes) if clustered_pool_sizes else 0.0
-        avg_rep_k = np.mean(clustered_rep_sizes) if clustered_rep_sizes else 0.0
-        avg_cluster_size = (
-            avg_pool_k / max(avg_rep_k, 1e-6) if clustered_rep_sizes else 0.0
-        )
+    if use_mode_rerank:
+        avg_pool_k = np.mean(mode_pool_sizes) if mode_pool_sizes else 0.0
+        avg_rep_k = np.mean(mode_rep_sizes) if mode_rep_sizes else 0.0
+        avg_basin_size = np.mean(mode_basin_sizes) if mode_basin_sizes else 0.0
         print(
-            "Results on Gibson with DisCo clustered rerank "
-            f"(source_top_k={args.cluster_source_top_k}, radius={args.cluster_radius_m:.2f}m, "
-            f"avg_rep_k={avg_rep_k:.1f}, avg_cluster_size={avg_cluster_size:.2f}, "
+            "Results on Gibson with DisCo SE(2)-Aware Mode Consolidation "
+            f"(source_top_k={args.mode_source_top_k}, sigma_t={args.se2_sigma_t_m:.2f}m, "
+            f"sigma_theta={args.se2_sigma_theta_deg:.1f}deg, rho={args.se2_mode_radius:.2f}, "
+            f"avg_rep_k={avg_rep_k:.1f}, avg_basin_size={avg_basin_size:.2f}, "
             f"alpha={args.alpha}, V={args.V}, FOV={args.fov}, Net={args.net_type})"
         )
     elif cl_model:
-        print(f"Results on Gibson with DisCo (k={args.top_k}, alpha={args.alpha}, V={args.V}, FOV={args.fov}, Net={args.net_type})")
+        print(f"Results on Gibson with DisCo (alpha={args.alpha}, V={args.V}, FOV={args.fov}, Net={args.net_type})")
     else:
         print(f"Results on Gibson RRP-only (V={args.V}, FOV={args.fov}, Net={args.net_type})")
     print(f"1m recall = {np.sum(acc_record < 1) / total_samples:.4f}")
@@ -791,9 +828,8 @@ def evaluate():
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "rrp_ckpt": args.rrp_model_ckpt,
         "disco_ckpt": args.disco_model_ckpt,
-        "k": args.top_k,
-        "cluster_source_top_k": args.cluster_source_top_k,
-        "cluster_radius_m": args.cluster_radius_m,
+        "candidate_consolidation": "se2_mode" if cl_model else "none",
+        "mode_source_top_k": args.mode_source_top_k if cl_model else 0,
         "gpu_localize": bool(args.gpu_localize and device == "cuda" and args.net_type != "unloc"),
         "alpha": args.alpha,
         "1m_recall": np.sum(acc_record < 1) / total_samples,
@@ -801,9 +837,14 @@ def evaluate():
         "0.1m_recall": np.sum(acc_record < 0.1) / total_samples,
         "1m_30deg_recall": np.sum(np.logical_and(acc_record < 1, acc_orn_record < 30)) / total_samples,
     }
-    if use_clustered_rerank:
-        current_result["avg_cluster_pool_k"] = float(np.mean(clustered_pool_sizes)) if clustered_pool_sizes else 0.0
-        current_result["avg_cluster_rep_k"] = float(np.mean(clustered_rep_sizes)) if clustered_rep_sizes else 0.0
+    if use_mode_rerank:
+        current_result["avg_mode_pool_k"] = float(np.mean(mode_pool_sizes)) if mode_pool_sizes else 0.0
+        current_result["avg_mode_rep_k"] = float(np.mean(mode_rep_sizes)) if mode_rep_sizes else 0.0
+        current_result["avg_basin_size"] = float(np.mean(mode_basin_sizes)) if mode_basin_sizes else 0.0
+        current_result["se2_sigma_t_m"] = args.se2_sigma_t_m
+        current_result["se2_sigma_theta_deg"] = args.se2_sigma_theta_deg
+        current_result["se2_angle_weight"] = args.se2_angle_weight
+        current_result["se2_mode_radius"] = args.se2_mode_radius
     
     history = []
     if os.path.exists(log_file):
