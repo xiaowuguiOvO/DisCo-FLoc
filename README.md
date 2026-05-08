@@ -120,19 +120,6 @@ python eval/eval_disco_model_gibson.py \
   --disco_model_ckpt checkpoints/DisCo_gibson_f_best.ckpt
 ```
 
-The Structured3D DisCo evaluator uses SE(2)-aware mode consolidation by default:
-
-```text
-mode_source_top_k = 1000
-sigma_t = 0.6 m
-sigma_theta = 30 deg
-lambda_theta = 1.0
-rho = 1.0
-alpha = 0.5
-```
-
-GPU DESDF localization is enabled by default when CUDA is available. Pass `--cpu_localize` to use the CPU path.
-
 ## Useful Ablations
 
 Hard-negative ablations:
