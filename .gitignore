@@ -7,3 +7,12 @@ datasets_s3d
 datasets_s3d_metadata/
 datasets_gibson/
 datasets_gibson
+logs/
+logs*/
+eval/logs/
+eval/logs*/
+eval/eval_history*.txt
+.vscode/
+.pytest_cache/
+*.ckpt
+*.pth

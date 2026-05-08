@@ -4,88 +4,142 @@
   <img src="assets/framework.png" width="100%">
 </div>
 
-This repository contains the implementation for paper **DisCo-FLoc: Using Dual-Level Visual-Geometric Contrasts to Disambiguate Depth-Aware Visual Floorplan Localization**.
+This repository contains the implementation of DisCo-FLoc, a visual floorplan localization system that combines depth-aware geometric localization with visual-geometric DisCo reranking. The current codebase supports both Structured3D and Gibson training/evaluation in one branch.
 
-## Environment Setup
+## Environment
 
-1.  **Prerequisites**: Ensure you have Python installed (recommended version >= 3.8).
-2.  **Install Dependencies**: Run the following command to install the required Python libraries:
+The code is tested with Python 3.8+ and PyTorch.
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+```bash
+pip install -r requirements.txt
+```
 
-## Prerequisites
+The image/depth backbone uses Depth Anything V2. Download the ViT-S checkpoint and place it at:
 
-Before running the training scripts, you need to prepare the dataset and checkpoints.
+```text
+checkpoints/depth_anything_v2_vits.pth
+```
 
-### 1. Dataset Preparation
+Download:
 
-We provide a **Metadata Pack** containing processed labels, poses, and DESDF features. You need to combine this with the raw images from the official Structured3D dataset.
+```text
+https://huggingface.co/depth-anything/Depth-Anything-V2-Small/resolve/main/depth_anything_v2_vits.pth
+```
 
-**Step 1: Download Metadata**
-*   Download our processed metadata (`datasets_s3d_metadata_only.zip`) from [**[HERE]**](https://drive.google.com/file/d/1Uyl_VoYHTyMi3he5jCuKLNOvgvQMUfYE/view?usp=sharing).
-*   Unzip it to the project root. You will get a folder structure like `datasets_s3d/Structured3D/...`.
+## Data Layout
 
-**Step 2: Download Raw Data**
-*   Go to the [**Structured3D Official Website**](https://structured3d-dataset.org/) or [**GitHub**](https://github.com/bertjiazheng/Structured3D) to request access and download the **Full** dataset.
+Datasets and checkpoints are not included in this repository.
 
-**Step 3: Merge Data**
-*   Place the downloaded RGB images into the corresponding `imgs/` folders in our directory structure.
-*   Ensure `map.png` (floorplan) exists in each scene folder (copy from official data if needed).
+Structured3D should be arranged as:
 
-**Final Structure:**
 ```text
 datasets_s3d/
-└── Structured3D/
-    ├── split.yaml
-    ├── desdf/
+├── Structured3D/
+│   ├── split.yaml
+│   ├── scene_00000/
+│   │   ├── imgs/
+│   │   ├── map.png
+│   │   ├── poses_map.txt
+│   │   └── depth40.txt
+│   └── ...
+└── desdf/
     ├── scene_00000/
-    │   ├── poses_map.txt   <-- Included in Metadata
-    │   ├── depth40.txt     <-- Included in Metadata
-    │   ├── map.png         <-- Included in Metadata or Copy from Official
-    │   └── imgs/
-    │       ├── 000.png     <-- PLACE OFFICIAL IMAGES HERE
-    │       └── ...
+    │   └── desdf.npy
     └── ...
 ```
 
-### 2. Pretrained Checkpoints
+Gibson-F should be arranged as:
 
-You need the **Depth Anything V2** checkpoint (ViT-S version).
+```text
+datasets_gibson/
+└── gibson_f/
+    ├── split.yaml
+    ├── <scene_name>/
+    │   ├── imgs/
+    │   ├── map.png
+    │   ├── poses_map.txt
+    │   ├── depth40.txt
+    │   └── desdf.npy
+    └── ...
+```
 
-* **Location**: `checkpoints/depth_anything_v2_vits.pth`
-* **Download**: Download the `depth_anything_v2_vits.pth` from  
-  https://huggingface.co/depth-anything/Depth-Anything-V2-Small/resolve/main/depth_anything_v2_vits.pth
-
-If you need the **trained DisCo-FLoc checkpoints**, you can download them [here](https://drive.google.com/drive/folders/1NmdI9edHnXZbCO11bcKiTgt3bDg1y_c_?usp=sharing).
+Update the paths in `configs/paper/*.yaml` if your local data layout is different.
 
 ## Training
-### Train DisCo Model
 
-To train the DisCo model, run:
-
-```bash
-python training/train_disco_model.py --config DisCo_FLoc.yaml
-```
-
-### Train RRP Model
-
-To train the RRP model, run:
+Train RRP on Structured3D:
 
 ```bash
-python training/train_rrp_model.py --config RRP.yaml
+python training/train_rrp_model.py --config configs/paper/rrp_s3d.yaml
 ```
 
+Train DisCo on Structured3D:
+
+```bash
+python training/train_disco_model.py --config configs/paper/disco_s3d.yaml
+```
+
+Train RRP on Gibson-F:
+
+```bash
+python training/train_rrp_model.py --config configs/paper/rrp_gibson.yaml
+```
+
+Train DisCo on Gibson-F:
+
+```bash
+python training/train_disco_model.py --config configs/paper/disco_gibson.yaml
+```
 
 ## Evaluation
+
+Evaluate Structured3D with RRP + DisCo:
+
 ```bash
-python eval/eval_disco_model_s3d.py
+python eval/eval_disco_model_s3d.py \
+  --rrp_model_ckpt checkpoints/RRP_s3d_best.ckpt \
+  --disco_model_ckpt checkpoints/DisCo_s3d_best.ckpt
 ```
 
-## Gibson Version
-If you want to train on Gibson datasets, you can
-    ```
-    git checkout main_gibson
-    ```
-to switch to Gibson version.
+Evaluate Gibson-F with RRP + DisCo:
+
+```bash
+python eval/eval_disco_model_gibson.py \
+  --rrp_model_ckpt checkpoints/RRP_gibson_f_best.ckpt \
+  --disco_model_ckpt checkpoints/DisCo_gibson_f_best.ckpt
+```
+
+The Structured3D DisCo evaluator uses SE(2)-aware mode consolidation by default:
+
+```text
+mode_source_top_k = 1000
+sigma_t = 0.6 m
+sigma_theta = 30 deg
+lambda_theta = 1.0
+rho = 1.0
+alpha = 0.5
+```
+
+GPU DESDF localization is enabled by default when CUDA is available. Pass `--cpu_localize` to use the CPU path.
+
+## Useful Ablations
+
+Hard-negative ablations:
+
+```bash
+python training/train_disco_model.py --config DisCo_FLoc_no_pos_neg.yaml
+python training/train_disco_model.py --config DisCo_FLoc_no_ori_neg.yaml
+python training/train_disco_model.py --config DisCo_FLoc_no_hard_neg.yaml
+```
+
+CLS-query DisCo variant:
+
+```bash
+python training/train_disco_model.py --config DisCo_FLoc_mixed_aug_cls_query_bs32.yaml
+```
+
+## Notes
+
+- `checkpoints/`, `datasets_s3d/`, `datasets_gibson/`, `logs/`, and `wandb/` are intentionally ignored.
+- The repository does not include pretrained model weights or dataset files.
+- The `main` branch contains the unified Structured3D and Gibson code path; no separate Gibson branch is needed.
