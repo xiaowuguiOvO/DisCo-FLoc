@@ -429,7 +429,7 @@ def benchmark(args):
 
 def main():
     parser = argparse.ArgumentParser(description="Benchmark S3D DisCo clustered top-N inference speed")
-    parser.add_argument("--config", "-c", default="DisCo_FLoc.yaml", type=str)
+    parser.add_argument("--config", "-c", default="configs/paper/disco_s3d.yaml", type=str)
     parser.add_argument("--dataset_path", type=str, default="./datasets_s3d/Structured3D")
     parser.add_argument("--desdf_path", type=str, default="./datasets_s3d/desdf")
     parser.add_argument("--rrp_model_ckpt", type=str, default="checkpoints/RRP_s3d_best.ckpt")

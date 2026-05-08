@@ -352,7 +352,7 @@ def build_first_frame_disco_prior(
 
 def evaluate_filtering():
     parser = argparse.ArgumentParser(description="Filtering evaluation.")
-    parser.add_argument("--config", "-c", default="DisCo_Gibson.yaml", type=str)
+    parser.add_argument("--config", "-c", default="configs/paper/disco_gibson.yaml", type=str)
     parser.add_argument("--dataset_path", type=str, default="./datasets_gibson/gibson_t")
     parser.add_argument("--desdf_path", type=str, default="./datasets_gibson/desdf/")
     parser.add_argument("--rrp_model_ckpt", type=str, default="checkpoints/RRP_gibson_best.ckpt", help="Path to RRP checkpoint")

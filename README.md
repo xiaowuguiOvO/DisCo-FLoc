@@ -31,6 +31,8 @@ The image/depth backbone uses Depth Anything V2. Download the ViT-S checkpoint f
 checkpoints/depth_anything_v2_vits.pth
 ```
 
+The trained DisCo-FLoc checkpoints can be downloaded from [HERE](https://drive.google.com/drive/folders/1EbVorZNfjDQ6zmYISy_2Xy7rCLOmivXM?usp=sharing).
+
 ## Data Layout
 
 Datasets and checkpoints are not included in this repository.
