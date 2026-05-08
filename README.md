@@ -35,7 +35,7 @@ checkpoints/depth_anything_v2_vits.pth
 
 Datasets and checkpoints are not included in this repository.
 
-For Structured3D, download the processed metadata pack from [HERE](https://drive.google.com/file/d/1Uyl_VoYHTyMi3he5jCuKLNOvgvQMUfYE/view?usp=sharing), then merge it with the raw RGB images from the official Structured3D release.
+For Structured3D, download the processed metadata pack from [HERE](https://drive.google.com/file/d/1Uyl_VoYHTyMi3he5jCuKLNOvgvQMUfYE/view?usp=sharing), then merge it with the raw RGB images from the official Structured3D release. Request and download the original Structured3D data from the [official website](https://structured3d-dataset.org/) or [GitHub repository](https://github.com/bertjiazheng/Structured3D).
 
 Structured3D should be arranged as:
 
