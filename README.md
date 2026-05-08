@@ -25,21 +25,17 @@ The code is tested with Python 3.8+ and PyTorch.
 pip install -r requirements.txt
 ```
 
-The image/depth backbone uses Depth Anything V2. Download the ViT-S checkpoint and place it at:
+The image/depth backbone uses Depth Anything V2. Download the ViT-S checkpoint from [HERE](https://huggingface.co/depth-anything/Depth-Anything-V2-Small/resolve/main/depth_anything_v2_vits.pth) and place it at:
 
 ```text
 checkpoints/depth_anything_v2_vits.pth
 ```
 
-Download:
-
-```text
-https://huggingface.co/depth-anything/Depth-Anything-V2-Small/resolve/main/depth_anything_v2_vits.pth
-```
-
 ## Data Layout
 
 Datasets and checkpoints are not included in this repository.
+
+For Structured3D, download the processed metadata pack from [HERE](https://drive.google.com/file/d/1Uyl_VoYHTyMi3he5jCuKLNOvgvQMUfYE/view?usp=sharing), then merge it with the raw RGB images from the official Structured3D release.
 
 Structured3D should be arranged as:
 
